@@ -24,6 +24,8 @@ public key:  02b123040d1e31a4f7163e0acab059a69b406755f018b6700e79a06bd88aca1e96
 */
 
 app.get("/balance/:address", (req, res) => {
+  // todo:get a signature from the client-side application
+  // recover the public address from the signature
   const { address } = req.params;
   const balance = balances[address] || 0;
   res.send({ balance });
