@@ -2,40 +2,58 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const port = 3042;
+const { ethers } = require("ethers");
 
 app.use(cors());
 app.use(express.json());
 
 const balances = {
-  "0263a0a364871bf955b4ca795f609902c8e51134a70bcd87d90b677a6456d86148": 100,
-  "02004ff20315a8375e1922a0a1f5cb92a61bde86b212344e73002b62c2e42485bd": 50,
-  "02b123040d1e31a4f7163e0acab059a69b406755f018b6700e79a06bd88aca1e96": 75,
+  "0x029dB58A99129425c0b31a4B518F074B1fA4797f": 100,
+  "0x7f7B0E8a539A9589B60A1D4C44F4F3155410C215": 50,
+  "0xC3dFFAd46c40233FeF5bC6632b0aA872bcaf925F": 75,
 };
 
 /*
-private key:  a6a76a42daa8a37cb542e2ba3708c241258e101204a9a84127405bfe50d34a76
-public key:  0263a0a364871bf955b4ca795f609902c8e51134a70bcd87d90b677a6456d86148
+Private Key: 0x665fae37d272810c729d10617fc29a104ba995607f44373f7538842eb336e2d4
+Public Key: 0x04589d6c121c2eba5e414bfb3b83e47c513a4de63f440a3d9e98575faa279f065e92619ff433b6b7d53799eb2a8fcd39042b0a6a4a6aebf35170a48d496460cf52
+Address: 0x029dB58A99129425c0b31a4B518F074B1fA4797f
 
-private key:  9331e39433db0162d02ff87977e2ed19a1c507b817029183486ec4fb42c46f91
-public key:  02004ff20315a8375e1922a0a1f5cb92a61bde86b212344e73002b62c2e42485bd
+Private Key: 0x043377a1e4845c4bcbf9fa96635e14ab97d14d4f132decd606e4832aab69bb8a
+Public Key: 0x04c4836b2bb1b2ec434a92f5d36f7ea6c3abf8dd93107f67d0603f573d8c0ab8c91ee636beb1b1cceb59997435ca620c6e8829220950344855717857078257e9e7
+Address: 0x7f7B0E8a539A9589B60A1D4C44F4F3155410C215
 
-private key:  874bd8c762ec91fbc28849f7dd39f170665cf137908f04385d00c0593354f4b8
-public key:  02b123040d1e31a4f7163e0acab059a69b406755f018b6700e79a06bd88aca1e96
+Private Key: 0xb3fa40a27b733617a8f415a67dbefe785365c0f068047691777148e10c030b39
+Public Key: 0x044f5b65e74d5919c9f9b972ee0dabf0c7297f0c066038e5ae6c156b05e6aeae14526be4b250bde73c1a60fdfa66085dbd3539a61b764614f0e3ed957efe8e3dc9
+Address: 0xC3dFFAd46c40233FeF5bC6632b0aA872bcaf925F
+
 */
 
 app.get("/balance/:address", (req, res) => {
-  // todo:get a signature from the client-side application
-  // recover the public address from the signature
   const { address } = req.params;
+//  console.log('balance/address', address);
   const balance = balances[address] || 0;
   res.send({ balance });
 });
 
 app.post("/send", (req, res) => {
-  const { sender, recipient, amount } = req.body;
+  const { sender, recipient, amount, signature } = req.body;
 
   setInitialBalance(sender);
   setInitialBalance(recipient);
+
+  const message = `send ${amount} to ${recipient} from ${sender}`;
+
+  //console.log('server message', message);
+  //console.log('server signature', signature);
+  // recover the public address from the signature
+  const signerAddress = ethers.utils.verifyMessage(message, signature);
+
+  //console.log('signerAddress', signerAddress);
+  //console.log('sender', sender);
+
+  if (signerAddress.toLowerCase() !== sender.toLowerCase()) {
+    return res.status(403).send({ message: "Signature verification failed." });
+  }
 
   if (balances[sender] < amount) {
     res.status(400).send({ message: "Not enough funds!" });
@@ -55,3 +73,4 @@ function setInitialBalance(address) {
     balances[address] = 0;
   }
 }
+
